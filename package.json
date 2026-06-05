@@ -1,0 +1,28 @@
+{
+  "name": "obsidian-umpire",
+  "version": "0.1.0",
+  "description": "Obsidian referee assistant for Open Strategy Game sessions.",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "preversion": "npm run build",
+    "version": "node scripts/sync-manifest-version.mjs && git add package.json package-lock.json manifest.json main.js"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "osg",
+    "factionlog"
+  ],
+  "author": "Roberto Bisceglie",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.17.3",
+    "obsidian": "latest",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4"
+  }
+}

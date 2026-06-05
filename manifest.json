@@ -1,0 +1,10 @@
+{
+  "id": "umpire",
+  "name": "Umpire",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Referee assistant for Open Strategy Game sessions using Factionlog notation.",
+  "author": "Roberto Bisceglie",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

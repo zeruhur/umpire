@@ -1,0 +1,83 @@
+import { DiceResult, FactionAction, LeverageGrade, NoteFrontMatter } from "./types";
+
+export function buildSystemPrompt(frontMatter: NoteFrontMatter): string {
+  if (frontMatter.system_prompt_override?.trim()) return frontMatter.system_prompt_override.trim();
+  return [
+    "You are Umpire, a Referee assistant for Open Strategy Game sessions.",
+    "You are not a game master and not a narrator. The Referee keeps final authority.",
+    "Do not invent lore, factions, locations, resources, or facts absent from the provided note metadata, board state, and action text.",
+    "Apply OSG principles: one action per faction, Strong or Weak leverage, 2d6 kept die, the RAT checklist, and no action without friction.",
+    "RAT means Reasonable, Actionable, Traceable.",
+    "Use concise, concrete language grounded in established board state.",
+    "Return only the requested content. Do not explain your process.",
+  ].join("\n");
+}
+
+export function buildContext(frontMatter: NoteFrontMatter, boardState: string): string {
+  return [
+    `Title: ${frontMatter.title ?? "Untitled"}`,
+    `System: ${frontMatter.system ?? "Open Strategy Game"}`,
+    `Current turn: ${frontMatter.current_turn ?? "unknown"}`,
+    `Factions: ${(frontMatter.factions ?? []).join(", ") || "unspecified"}`,
+    `NPAs: ${(frontMatter.npas ?? []).join(", ") || "none specified"}`,
+    `Language: ${frontMatter.language ?? "en"}`,
+    "",
+    "Board state:",
+    boardState || "No board state extracted.",
+  ].join("\n");
+}
+
+export function leveragePrompt(context: string, action: FactionAction): string {
+  return [
+    context,
+    "",
+    "Recommend whether this action has Strong or Weak leverage. Give exactly one first line: Strong or Weak. Then give two short reasons.",
+    formatActionForPrompt(action),
+  ].join("\n");
+}
+
+export function adjudicationPrompt(context: string, action: FactionAction, grade: LeverageGrade, dice: DiceResult): string {
+  return [
+    context,
+    "",
+    "Draft a Factionlog adjudication for the action below.",
+    "Output exactly one outcome line beginning with -> and one or more consequence lines beginning with =>.",
+    "Do not include dice, leverage grade, report prose, or explanation.",
+    `Leverage: ${grade}`,
+    `Dice kept result: ${dice.kept} from ${dice.die1},${dice.die2}`,
+    formatActionForPrompt(action),
+  ].join("\n");
+}
+
+export function forceOfNaturePrompt(context: string, dice: DiceResult): string {
+  return [
+    context,
+    "",
+    `Doubles were rolled: ${dice.die1},${dice.die2}.`,
+    "Draft one optional Force of Nature that is traceable to existing board state and creates table-wide complications.",
+    "Return one short first line for [FoN:] and optional consequence lines. Do not invent unrelated lore.",
+  ].join("\n");
+}
+
+export function reportPrompt(context: string, turnBlock: string): string {
+  return [
+    context,
+    "",
+    "Draft the public Report for this turn in brief, factual, third-person news-roundup prose.",
+    "Exclude adjudication reasoning. Do not reveal private outcomes except as small traceable crumbs.",
+    "Return only report prose, not code fences.",
+    "",
+    "Current turn block:",
+    turnBlock,
+  ].join("\n");
+}
+
+function formatActionForPrompt(action: FactionAction): string {
+  return [
+    `@ ${action.factionName}${action.isNPA ? " (NPA)" : ""}`,
+    `act: ${action.act}`,
+    `out: ${action.out}`,
+    `lev: ${action.lev}`,
+    action.isPrivate ? "private: true" : "private: false",
+  ].join("\n");
+}

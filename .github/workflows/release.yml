@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build release package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate tag version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+
+          if [ "$VERSION" != "$PACKAGE_VERSION" ] || [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "Tag version: $VERSION"
+            echo "package.json version: $PACKAGE_VERSION"
+            echo "manifest.json version: $MANIFEST_VERSION"
+            exit 1
+          fi
+
+      - name: Package plugin
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          FILES=(main.js manifest.json)
+          if [ -f styles.css ]; then
+            FILES+=(styles.css)
+          fi
+
+          mkdir -p release
+          zip "release/umpire-${VERSION}.zip" "${FILES[@]}"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          FILES=(main.js manifest.json)
+          if [ -f styles.css ]; then
+            FILES+=(styles.css)
+          fi
+
+          gh release create "$GITHUB_REF_NAME" \
+            "release/umpire-${VERSION}.zip" \
+            "${FILES[@]}" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Release $GITHUB_REF_NAME"
