@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs",
     "dev": "node esbuild.config.mjs --watch",
+    "test": "node tests/run-smoke-tests.mjs",
     "preversion": "npm run build",
     "version": "node scripts/sync-manifest-version.mjs && git add package.json package-lock.json manifest.json main.js"
   },

@@ -1,4 +1,4 @@
-import { AdjudicationDraft, DiceResult, FactionAction, LeverageGrade } from "../types";
+import { ActorRegistration, AdjudicationDraft, DiceResult, FactionAction, LeverageGrade } from "../types";
 
 function clean(text: string): string {
   return text.replace(/^```[a-zA-Z]*\s*\n?/gm, "").replace(/\n?```\s*$/gm, "").trim();
@@ -18,6 +18,19 @@ export function formatAction(action: FactionAction, wrap: boolean): string {
     `  out: ${action.out}`,
     `  lev: ${action.lev}`,
   ].join("\n") + privacy, wrap);
+}
+
+export function formatActorRegistration(actor: ActorRegistration, wrap: boolean): string {
+  const tag = actor.isNPA ? "NPA" : "Fac";
+  const fields = [
+    `obj:${clean(actor.objectives)}`,
+    `pos:${clean(actor.position)}`,
+  ];
+  const bonuses = clean(actor.bonuses ?? "");
+  const behavior = clean(actor.behavior ?? "");
+  if (!actor.isNPA && bonuses) fields.push(`bon:${bonuses}`);
+  if (actor.isNPA && behavior) fields.push(`behavior:${behavior}`);
+  return maybeFence(`[${tag}:${clean(actor.name)} | ${fields.join(" | ")}]`, wrap);
 }
 
 export function formatLeverageGrade(grade: LeverageGrade): string {

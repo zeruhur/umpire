@@ -1,5 +1,5 @@
 import { App, Modal, Setting } from "obsidian";
-import { FactionAction, LeverageGrade } from "./types";
+import { ActorRegistration, FactionAction, LeverageGrade } from "./types";
 
 export class ActionSubmissionModal extends Modal {
   private onSubmit: (action: FactionAction) => void;
@@ -48,6 +48,104 @@ export class ActionSubmissionModal extends Modal {
       area.inputEl.rows = 4;
       area.onChange(onChange);
     });
+  }
+}
+
+export class ActorRegistrationModal extends Modal {
+  private onSubmit: (actor: ActorRegistration) => void;
+  private name = "";
+  private objectives = "";
+  private position = "";
+  private bonuses = "";
+  private behavior = "";
+  private isNPA = false;
+
+  constructor(app: App, onSubmit: (actor: ActorRegistration) => void) {
+    super(app);
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Register Actor" });
+
+    new Setting(contentEl).setName("Name").addText((text) => text
+      .setValue(this.name)
+      .onChange((value) => this.name = value));
+    this.addArea("Objectives", this.objectives, (value) => this.objectives = value);
+    this.addArea("Position", this.position, (value) => this.position = value);
+    new Setting(contentEl)
+      .setName("Non-player actor")
+      .addToggle((toggle) => toggle
+        .setValue(this.isNPA)
+        .onChange((value) => {
+          this.isNPA = value;
+          this.close();
+          this.open();
+        }));
+    if (this.isNPA) {
+      this.addArea("Behavior", this.behavior, (value) => this.behavior = value);
+    } else {
+      this.addArea("Bonuses", this.bonuses, (value) => this.bonuses = value);
+    }
+    new Setting(contentEl).addButton((button) => button
+      .setButtonText("Insert")
+      .setCta()
+      .onClick(() => {
+        if (!this.name.trim() || !this.objectives.trim() || !this.position.trim()) return;
+        this.onSubmit({
+          name: this.name.trim(),
+          objectives: this.objectives.trim(),
+          position: this.position.trim(),
+          bonuses: this.bonuses.trim() || undefined,
+          behavior: this.behavior.trim() || undefined,
+          isNPA: this.isNPA,
+        });
+        this.close();
+      }));
+  }
+
+  private addArea(name: string, initial: string, onChange: (value: string) => void): void {
+    new Setting(this.contentEl).setName(name).addTextArea((area) => {
+      area.inputEl.rows = 3;
+      area.setValue(initial);
+      area.onChange(onChange);
+    });
+  }
+}
+
+export class BriefPitchModal extends Modal {
+  private pitch = "";
+  private onSubmit: (pitch: string) => void;
+
+  constructor(app: App, onSubmit: (pitch: string) => void) {
+    super(app);
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Generate Brief" });
+    new Setting(contentEl)
+      .setName("Pitch")
+      .setDesc("Leave blank to generate a random plausible genre and subject.")
+      .addTextArea((area) => {
+        area.inputEl.rows = 6;
+        area.inputEl.cols = 64;
+        area.onChange((value) => this.pitch = value);
+        area.inputEl.focus();
+      });
+    new Setting(contentEl)
+      .addButton((button) => button.setButtonText("Dismiss").onClick(() => this.close()))
+      .addButton((button) => button
+        .setButtonText("Generate")
+        .setCta()
+        .onClick(() => {
+          this.onSubmit(this.pitch);
+          this.close();
+        }));
   }
 }
 

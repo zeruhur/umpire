@@ -27,29 +27,6 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var import_obsidian4 = require("obsidian");
 
-// src/editor.ts
-var import_obsidian = require("obsidian");
-function insertText(editor, text, mode) {
-  const insertion = `
-${text.trim()}
-`;
-  if (mode === "end-of-note") {
-    const lastLine = editor.lastLine();
-    editor.replaceRange(insertion, { line: lastLine + 1, ch: 0 });
-    return;
-  }
-  editor.replaceSelection(insertion);
-}
-function cursorOffset(editor) {
-  return editor.posToOffset(editor.getCursor());
-}
-
-// src/frontmatter.ts
-function getFrontMatter(app, file) {
-  var _a, _b;
-  return (_b = (_a = app.metadataCache.getFileCache(file)) == null ? void 0 : _a.frontmatter) != null ? _b : {};
-}
-
 // src/factionlog/formatter.ts
 function clean(text) {
   return text.replace(/^```[a-zA-Z]*\s*\n?/gm, "").replace(/\n?```\s*$/gm, "").trim();
@@ -69,6 +46,21 @@ function formatAction(action, wrap) {
     `  out: ${action.out}`,
     `  lev: ${action.lev}`
   ].join("\n") + privacy, wrap);
+}
+function formatActorRegistration(actor, wrap) {
+  var _a, _b;
+  const tag = actor.isNPA ? "NPA" : "Fac";
+  const fields = [
+    `obj:${clean(actor.objectives)}`,
+    `pos:${clean(actor.position)}`
+  ];
+  const bonuses = clean((_a = actor.bonuses) != null ? _a : "");
+  const behavior = clean((_b = actor.behavior) != null ? _b : "");
+  if (!actor.isNPA && bonuses)
+    fields.push(`bon:${bonuses}`);
+  if (actor.isNPA && behavior)
+    fields.push(`behavior:${behavior}`);
+  return maybeFence(`[${tag}:${clean(actor.name)} | ${fields.join(" | ")}]`, wrap);
 }
 function formatLeverageGrade(grade) {
   return `[Lev:${grade}]`;
@@ -97,13 +89,150 @@ function formatForceOfNature(text) {
   return output.join("\n");
 }
 
+// src/brief.ts
+var privateBriefRe = /^\s*\*?\s*Private Brief\b.*$/i;
+var labelRe = /^\s*(?:[-*]\s*)?\*\*([^:*]+):?\*\*:?|\s*(?:[-*]\s*)?([^:]+):/;
+function briefToFactionlog(text, wrap) {
+  const actors = parseBriefActors(text);
+  if (!actors.length)
+    return "";
+  return maybeFence(actors.map((actor) => formatActorRegistration(actor, false)).join("\n"), wrap);
+}
+function parseBriefActors(text) {
+  const lines = stripFences(text).split("\n");
+  const starts = lines.map((line, index) => privateBriefRe.test(line) ? index : -1).filter((index) => index >= 0);
+  return starts.map((start, index) => {
+    var _a;
+    return parsePrivateBrief(lines.slice(start, (_a = starts[index + 1]) != null ? _a : lines.length));
+  }).filter((actor) => actor !== null);
+}
+function parsePrivateBrief(lines) {
+  const section = lines.join("\n");
+  const rawName = valueAfterLabel(lines, "Faction Name") || headingName(lines[0]);
+  if (!rawName)
+    return null;
+  const isNPA = /\b(?:NPA|Non-Player Actor)\b/i.test(`${lines[0]}
+${rawName}`);
+  const name = rawName.replace(/\s*\((?:NPA|Non-Player Actor)\)\s*/ig, "").trim();
+  const shortTerm = valueAfterLabel(lines, "Short-term");
+  const longTerm = valueAfterLabel(lines, "Long-term");
+  const objectiveLines = collectBetween(lines, "Objectives", "Position");
+  const objectives = [
+    shortTerm ? `Short-term: ${shortTerm}` : "",
+    longTerm ? `Long-term: ${longTerm}` : ""
+  ].filter(Boolean).join("; ") || objectiveLines.join("; ");
+  const position = collectBetween(lines, "Position", "Special Abilities", true).join("; ") || valueAfterLabel(lines, "Position");
+  const bonuses = parseBonuses(section);
+  const behavior = valueAfterLabel(lines, "Behavior") || collectBetween(lines, "Behavior", "Special Abilities").join("; ");
+  if (!name || !objectives || !position)
+    return null;
+  return {
+    name,
+    objectives,
+    position,
+    bonuses: bonuses || void 0,
+    behavior: isNPA ? behavior || void 0 : void 0,
+    isNPA
+  };
+}
+function stripFences(text) {
+  return text.replace(/^```[a-zA-Z]*\s*\n?/gm, "").replace(/\n?```\s*$/gm, "").trim();
+}
+function headingName(line) {
+  var _a;
+  const match = line.match(/Private Brief:\s*(.+?)\s+only/i);
+  return clean2((_a = match == null ? void 0 : match[1]) != null ? _a : "");
+}
+function valueAfterLabel(lines, label) {
+  const index = lines.findIndex((line) => labelName(line).toLowerCase() === label.toLowerCase());
+  if (index < 0)
+    return "";
+  const sameLine = clean2(lines[index].replace(labelLineRe(label), ""));
+  if (sameLine)
+    return sameLine;
+  for (const line of lines.slice(index + 1)) {
+    if (!line.trim())
+      continue;
+    if (labelName(line))
+      break;
+    return clean2(line);
+  }
+  return "";
+}
+function collectBetween(lines, startLabel, endLabel, breakOnAnyLabel = false) {
+  const start = lines.findIndex((line) => labelName(line).toLowerCase() === startLabel.toLowerCase());
+  if (start < 0)
+    return [];
+  const values = [];
+  for (const line of lines.slice(start + 1)) {
+    const label = labelName(line);
+    if (label && (label.toLowerCase() === endLabel.toLowerCase() || breakOnAnyLabel))
+      break;
+    const value = clean2(line);
+    if (value && !/^\|?\s*-+\s*\|/.test(value) && !/^Name\s*\|\s*Uses/i.test(value))
+      values.push(value);
+  }
+  return values;
+}
+function parseBonuses(section) {
+  const bonuses = [];
+  for (const line of section.split("\n")) {
+    const cells = line.split("|").map((cell) => clean2(cell)).filter(Boolean);
+    if (cells.length < 2 || /^Name$/i.test(cells[0]) || /^-+$/.test(cells[0]))
+      continue;
+    const [name, rawUses] = cells;
+    if (!name || !rawUses)
+      continue;
+    const uses = /^\d+$/.test(rawUses) ? `${rawUses}/${rawUses}` : rawUses;
+    bonuses.push(`"${name}" ${uses}`);
+  }
+  return bonuses.join(", ");
+}
+function labelName(line) {
+  var _a, _b;
+  const match = line.match(labelRe);
+  return clean2((_b = (_a = match == null ? void 0 : match[1]) != null ? _a : match == null ? void 0 : match[2]) != null ? _b : "");
+}
+function labelLineRe(label) {
+  return new RegExp(`^\\s*(?:[-*]\\s*)?\\*\\*${escapeRegExp(label)}:?\\*\\*:?\\s*|^\\s*(?:[-*]\\s*)?${escapeRegExp(label)}:\\s*`, "i");
+}
+function clean2(text) {
+  return text.replace(/^\s*[-*]\s*/, "").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+}
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// src/editor.ts
+var import_obsidian = require("obsidian");
+function insertText(editor, text, mode) {
+  const insertion = `
+${text.trim()}
+`;
+  if (mode === "end-of-note") {
+    const lastLine = editor.lastLine();
+    editor.replaceRange(insertion, { line: lastLine + 1, ch: 0 });
+    return;
+  }
+  editor.replaceSelection(insertion);
+}
+function cursorOffset(editor) {
+  return editor.posToOffset(editor.getCursor());
+}
+
+// src/frontmatter.ts
+function getFrontMatter(app, file) {
+  var _a, _b;
+  return (_b = (_a = app.metadataCache.getFileCache(file)) == null ? void 0 : _a.frontmatter) != null ? _b : {};
+}
+
 // src/factionlog/parser.ts
 var actionHeaderRe = /^\s*(?:@|►)\s*(.+?)\s*$/;
 var stopRe = /^\s*(?:@|►|\[Turn:|\[T0\]|#{1,6}\s+Turn|\s*---\s*$)/i;
 function stripFrontMatter(text) {
   return text.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, "");
 }
-function stripFences(text) {
+function stripFences2(text) {
   return text.replace(/^```[a-zA-Z]*\s*\n?/gm, "").replace(/\n?```\s*$/gm, "").trim();
 }
 function cleanFieldMarker(line) {
@@ -114,7 +243,7 @@ function cleanFieldMarker(line) {
 }
 function parseActionBlock(text) {
   var _a, _b;
-  const lines = stripFences(text).split("\n");
+  const lines = stripFences2(text).split("\n");
   const headerIndex = lines.findIndex((line) => actionHeaderRe.test(line));
   if (headerIndex < 0)
     return null;
@@ -325,6 +454,78 @@ var ActionSubmissionModal = class extends import_obsidian2.Modal {
       area.inputEl.rows = 4;
       area.onChange(onChange);
     });
+  }
+};
+var ActorRegistrationModal = class extends import_obsidian2.Modal {
+  constructor(app, onSubmit) {
+    super(app);
+    this.name = "";
+    this.objectives = "";
+    this.position = "";
+    this.bonuses = "";
+    this.behavior = "";
+    this.isNPA = false;
+    this.onSubmit = onSubmit;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Register Actor" });
+    new import_obsidian2.Setting(contentEl).setName("Name").addText((text) => text.setValue(this.name).onChange((value) => this.name = value));
+    this.addArea("Objectives", this.objectives, (value) => this.objectives = value);
+    this.addArea("Position", this.position, (value) => this.position = value);
+    new import_obsidian2.Setting(contentEl).setName("Non-player actor").addToggle((toggle) => toggle.setValue(this.isNPA).onChange((value) => {
+      this.isNPA = value;
+      this.close();
+      this.open();
+    }));
+    if (this.isNPA) {
+      this.addArea("Behavior", this.behavior, (value) => this.behavior = value);
+    } else {
+      this.addArea("Bonuses", this.bonuses, (value) => this.bonuses = value);
+    }
+    new import_obsidian2.Setting(contentEl).addButton((button) => button.setButtonText("Insert").setCta().onClick(() => {
+      if (!this.name.trim() || !this.objectives.trim() || !this.position.trim())
+        return;
+      this.onSubmit({
+        name: this.name.trim(),
+        objectives: this.objectives.trim(),
+        position: this.position.trim(),
+        bonuses: this.bonuses.trim() || void 0,
+        behavior: this.behavior.trim() || void 0,
+        isNPA: this.isNPA
+      });
+      this.close();
+    }));
+  }
+  addArea(name, initial, onChange) {
+    new import_obsidian2.Setting(this.contentEl).setName(name).addTextArea((area) => {
+      area.inputEl.rows = 3;
+      area.setValue(initial);
+      area.onChange(onChange);
+    });
+  }
+};
+var BriefPitchModal = class extends import_obsidian2.Modal {
+  constructor(app, onSubmit) {
+    super(app);
+    this.pitch = "";
+    this.onSubmit = onSubmit;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Generate Brief" });
+    new import_obsidian2.Setting(contentEl).setName("Pitch").setDesc("Leave blank to generate a random plausible genre and subject.").addTextArea((area) => {
+      area.inputEl.rows = 6;
+      area.inputEl.cols = 64;
+      area.onChange((value) => this.pitch = value);
+      area.inputEl.focus();
+    });
+    new import_obsidian2.Setting(contentEl).addButton((button) => button.setButtonText("Dismiss").onClick(() => this.close())).addButton((button) => button.setButtonText("Generate").setCta().onClick(() => {
+      this.onSubmit(this.pitch);
+      this.close();
+    }));
   }
 };
 var LeverageConfirmModal = class extends import_obsidian2.Modal {
@@ -608,6 +809,56 @@ function reportPrompt(context, turnBlock) {
     turnBlock
   ].join("\n");
 }
+function briefPrompt(pitch) {
+  const premise = pitch.trim() ? `Use this pitch as the campaign seed: ${pitch.trim()}` : "The pitch is blank. Propose a random but plausible genre, subject, crisis, and cast suitable for Open Strategy Game play.";
+  return [
+    "Generate a complete Open Strategy Game campaign brief.",
+    premise,
+    "",
+    "Design constraints:",
+    "- Use 5 to 8 differentiated player Actors.",
+    "- Include 0 to 2 optional Non-Player Actors only if they create useful referee pressure.",
+    "- Every Actor needs asymmetric objectives, a concrete starting position, and at least one hook involving another Actor.",
+    "- Use concise, playable material. Avoid lore dumps.",
+    "- Keep the game credible: objectives should create tension without requiring one fixed plot.",
+    "- Include Special Abilities as spendable bonuses when useful. Uses must be written as a number or as current/max, such as 1 or 2/2.",
+    "- Mark Non-Player Actors clearly with (NPA) in the private brief heading and faction name.",
+    "",
+    "Return only the brief in exactly this Markdown structure:",
+    "",
+    "**Brief Template**",
+    "",
+    "*General Brief: distributed to all players*",
+    "",
+    "**The Problem:** one sentence",
+    "**The World:** broad strokes, shared context",
+    "**The Actors:** one public sentence per faction",
+    "**Structure:** Each Actor submits one Action per turn in the format Action / Outcome / Leverage. The game ends after X turns. Objectives are self-assessed at game end.",
+    "**Expectations:** The goal of the game is to achieve your objectives. The point of the game is to create a credible narrative.",
+    "",
+    "---",
+    "*Private Brief: this Actor only*",
+    "",
+    "**Faction Name:**",
+    "**Objectives:**",
+    "",
+    "- Short-term:",
+    "- Long-term:",
+    "",
+    "**Position:**",
+    "-",
+    "-",
+    "-",
+    "",
+    "**Special Abilities** *(if using bonuses)*:",
+    "",
+    "| Name | Uses | Description |",
+    "| ---- | ---- | ----------- |",
+    "|      |      |             |",
+    "",
+    "Repeat the Private Brief section once for each Actor and NPA."
+  ].join("\n");
+}
 function formatActionForPrompt(action) {
   return [
     `@ ${action.factionName}${action.isNPA ? " (NPA)" : ""}`,
@@ -634,6 +885,55 @@ var UmpirePlugin = class extends import_obsidian4.Plugin {
         new ActionSubmissionModal(this.app, (action) => {
           insertText(editor, formatAction(action, this.settings.wrapInCodeBlocks), this.settings.insertionMode);
         }).open();
+      }
+    });
+    this.addCommand({
+      id: "register-actor",
+      name: "Register Actor",
+      editorCallback: (editor) => {
+        new ActorRegistrationModal(this.app, (actor) => {
+          insertText(editor, formatActorRegistration(actor, this.settings.wrapInCodeBlocks), this.settings.insertionMode);
+        }).open();
+      }
+    });
+    this.addCommand({
+      id: "generate-brief",
+      name: "Generate Brief",
+      editorCallback: (editor, view) => {
+        new BriefPitchModal(this.app, async (pitch) => {
+          const setup = this.getGenerationSetup(view.file ? getFrontMatter(this.app, view.file) : {});
+          if (!setup)
+            return;
+          try {
+            const response = await setup.provider.generate({
+              systemPrompt: buildSystemPrompt(setup.frontMatter),
+              userMessage: briefPrompt(pitch),
+              model: setup.model,
+              temperature: setup.temperature,
+              maxOutputTokens: 3500
+            });
+            new ReviewTextModal(this.app, "Review Brief", response.text, "Insert", (value) => {
+              insertText(editor, value.trim(), this.settings.insertionMode);
+            }).open();
+            this.noticeTokens(response);
+          } catch (error) {
+            console.error(error);
+            new import_obsidian4.Notice("Umpire: generation failed. Check settings and network access.");
+          }
+        }).open();
+      }
+    });
+    this.addCommand({
+      id: "brief-to-log",
+      name: "Brief To Log",
+      editorCallback: (editor) => {
+        const source = editor.getSelection().trim() || editor.getValue();
+        const log = briefToFactionlog(source, this.settings.wrapInCodeBlocks);
+        if (!log) {
+          new import_obsidian4.Notice("Umpire: no parseable private brief sections found.");
+          return;
+        }
+        insertText(editor, log, this.settings.insertionMode);
       }
     });
     this.addCommand({

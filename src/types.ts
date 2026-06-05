@@ -61,6 +61,15 @@ export interface FactionAction {
   isPrivate?: boolean;
 }
 
+export interface ActorRegistration {
+  name: string;
+  objectives: string;
+  position: string;
+  bonuses?: string;
+  behavior?: string;
+  isNPA: boolean;
+}
+
 export interface DiceResult {
   die1: number;
   die2: number;

@@ -1,14 +1,15 @@
 import { Editor, Notice, Plugin } from "obsidian";
+import { briefToFactionlog } from "./brief";
 import { insertText, cursorOffset } from "./editor";
 import { getFrontMatter } from "./frontmatter";
-import { formatAction, formatAdjudication, formatDice, formatForceOfNature, formatLeverageGrade, maybeFence } from "./factionlog/formatter";
+import { formatAction, formatActorRegistration, formatAdjudication, formatDice, formatForceOfNature, formatLeverageGrade } from "./factionlog/formatter";
 import { findActionBlockAt, parseActionBlock, parseBoardState, parseDiceResult, parseLeverageGrade, serializeBoardState } from "./factionlog/parser";
-import { ActionSubmissionModal, AdjudicationReviewModal, LeverageConfirmModal, ReviewTextModal } from "./modals";
+import { ActionSubmissionModal, ActorRegistrationModal, AdjudicationReviewModal, BriefPitchModal, LeverageConfirmModal, ReviewTextModal } from "./modals";
 import { getProvider } from "./providers";
 import { AIProvider } from "./providers/base";
 import { DEFAULT_SETTINGS, UmpireSettingTab } from "./settings";
 import { AdjudicationDraft, DiceResult, FactionAction, LeverageGrade, NoteFrontMatter, ProviderID, UmpireSettings } from "./types";
-import { adjudicationPrompt, buildContext, buildSystemPrompt, forceOfNaturePrompt, leveragePrompt, reportPrompt } from "./promptBuilder";
+import { adjudicationPrompt, briefPrompt, buildContext, buildSystemPrompt, forceOfNaturePrompt, leveragePrompt, reportPrompt } from "./promptBuilder";
 
 export default class UmpirePlugin extends Plugin {
   settings: UmpireSettings = DEFAULT_SETTINGS;
@@ -24,6 +25,57 @@ export default class UmpirePlugin extends Plugin {
         new ActionSubmissionModal(this.app, (action) => {
           insertText(editor, formatAction(action, this.settings.wrapInCodeBlocks), this.settings.insertionMode);
         }).open();
+      },
+    });
+
+    this.addCommand({
+      id: "register-actor",
+      name: "Register Actor",
+      editorCallback: (editor) => {
+        new ActorRegistrationModal(this.app, (actor) => {
+          insertText(editor, formatActorRegistration(actor, this.settings.wrapInCodeBlocks), this.settings.insertionMode);
+        }).open();
+      },
+    });
+
+    this.addCommand({
+      id: "generate-brief",
+      name: "Generate Brief",
+      editorCallback: (editor, view) => {
+        new BriefPitchModal(this.app, async (pitch) => {
+          const setup = this.getGenerationSetup(view.file ? getFrontMatter(this.app, view.file) : {});
+          if (!setup) return;
+          try {
+            const response = await setup.provider.generate({
+              systemPrompt: buildSystemPrompt(setup.frontMatter),
+              userMessage: briefPrompt(pitch),
+              model: setup.model,
+              temperature: setup.temperature,
+              maxOutputTokens: 3500,
+            });
+            new ReviewTextModal(this.app, "Review Brief", response.text, "Insert", (value) => {
+              insertText(editor, value.trim(), this.settings.insertionMode);
+            }).open();
+            this.noticeTokens(response);
+          } catch (error) {
+            console.error(error);
+            new Notice("Umpire: generation failed. Check settings and network access.");
+          }
+        }).open();
+      },
+    });
+
+    this.addCommand({
+      id: "brief-to-log",
+      name: "Brief To Log",
+      editorCallback: (editor) => {
+        const source = editor.getSelection().trim() || editor.getValue();
+        const log = briefToFactionlog(source, this.settings.wrapInCodeBlocks);
+        if (!log) {
+          new Notice("Umpire: no parseable private brief sections found.");
+          return;
+        }
+        insertText(editor, log, this.settings.insertionMode);
       },
     });
 

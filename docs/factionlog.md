@@ -2,7 +2,7 @@
 title: Factionlog
 subtitle: A Standard Notation for Open Strategy Game Session Logging
 author: Roberto Bisceglie
-version: 0.2.0
+version: 0.3.0
 license: CC BY-SA 4.0
 lang: en
 parent: Lonelog v1.4.0
@@ -38,7 +38,7 @@ The notation is designed to be:
 Five elements mirror the natural flow of OSG adjudication:
 
 - `@` for each faction's submitted action (three-part argument)
-- `d:` for the dice mechanic (2d6, keep-high or keep-low)
+- `d:` for the dice mechanic (`2d6kh1` or `2d6kl1`)
 - `->` for the adjudicated outcome
 - `=>` for the consequence on the board state
 - The Report block for the public summary
@@ -53,7 +53,7 @@ That's the core. Everything else (faction tags, bonus tracking, location markers
   out: Delay Caldrath's army movement for thirty days
   lev: We hold all loan documentation; emergency clause has precedent
 [Lev:Strong]
-d: 2d6 → 5,3  keep high → 5
+d: 2d6kh1 [5, 3] = 5
 -> Partial success — review opens, but scope is disputed
 => Caldrath treasury enters review; army movement delayed one turn
 
@@ -62,7 +62,7 @@ d: 2d6 → 5,3  keep high → 5
   out: Establish military presence before any treaty negotiation
   lev: Largest army on the peninsula; units are one day's march away
 [Lev:Strong]
-d: 2d6 → 6,2  keep high → 6
+d: 2d6kh1 [6, 2] = 6
 -> Success, and...
 => [Fac:Caldrath | pos:pass occupied]
 => Essaveth's border garrison stands down without resistance
@@ -122,7 +122,7 @@ Date: 2026-05-01 | Turns: 1–2
   out: Delay army movement thirty days
   lev: Emergency clause, full documentation, precedent established
 [Lev:Strong]
-d: 2d6 → 6,2  keep high → 6
+d: 2d6kh1 [6, 2] = 6
 -> Success
 => [Fac:Caldrath | pos:army held at border | Clock:LiquidityReview 1/3]
 ```
@@ -137,7 +137,7 @@ Turn 1
   out: Delay army movement thirty days
   lev: Emergency clause, full documentation, precedent established
 [Lev:Strong]
-d: 2d6 → 6,2  keep high → 6
+d: 2d6kh1 [6, 2] = 6
 -> Success
 => [Fac:Caldrath | pos:army held | Clock:LiquidityReview 1/3]
 ```
@@ -220,11 +220,11 @@ The Referee is not scoring a debate. Strong or Weak is a qualitative judgment fo
 
 ### 3.3 The Dice Mechanic (`d:`)
 
-OSG uses 2d6: **keep the high die** for Strong leverage, **keep the low die** for Weak leverage.
+OSG uses `2d6kh1` (keep highest die) for Strong leverage, `2d6kl1` (keep lowest die) for Weak leverage.
 
 ```
-d: 2d6 → 5,3  keep high → 5   (Strong)
-d: 2d6 → 5,3  keep low  → 3   (Weak)
+d: 2d6kh1 [5, 3] = 5   (Strong)
+d: 2d6kl1 [5, 3] = 3   (Weak)
 ```
 
 **Result interpretation:**
@@ -241,7 +241,7 @@ d: 2d6 → 5,3  keep low  → 3   (Weak)
 When both dice show the same number, the Referee may introduce a Force of Nature: a chaotic event outside any faction's control. Record it on its own line:
 
 ```
-d: 2d6 → 3,3  DOUBLES
+d: 2d6 [3, 3]  DOUBLES
 [FoN: harbour storm grounds all sea transit next turn]
 => All sea transit actions opposed next turn
 => Saivorn's naval advantage temporarily neutralized
@@ -471,7 +471,7 @@ A full multi-faction turn from *The Corentine Crisis*, Turn 2.
        financial relief — something Caldrath cannot match.
        [Bon:"Debt Clause" 2/2 → 1/2]
 [Lev:Strong]
-d: 2d6 → 4,6  keep high → 6
+d: 2d6kh1 [4, 6] = 6
 -> Success, and... Essaveth accepts — and volunteers intelligence
    on Caldrath's supply line through the pass
 => [Fac:Essaveth | pos:quiet Meranto ally | Bon:IntelligenceFile 1/1]
@@ -486,7 +486,7 @@ d: 2d6 → 4,6  keep high → 6
        obligations from the old compact; the army is already visible
        at the border — implicit threat requires no elaboration
 [Lev:Strong]
-d: 2d6 → 2,5  keep high → 5
+d: 2d6kh1 [2, 5] = 5
 -> Partial success — Essaveth stalls, citing the need for
    Conclave ratification before any troop movement
 => [Fac:Caldrath | pos:army delayed at border | Clock:PassNegotiation 1/3]
@@ -502,7 +502,7 @@ d: 2d6 → 2,5  keep high → 5
        under the old treaty; the neutral city gives the Conclave
        standing no other actor can claim
 [Lev:Strong]
-d: 2d6 → 3,5  keep high → 5
+d: 2d6kh1 [3, 5] = 5
 -> Success — all factions receive the invitation
 => [E:ConclaveSummit | Clock: 1/1] — summit is imminent, Turn 3
 => Every faction must now decide: attend, refuse, or act before it
@@ -589,7 +589,7 @@ In solo play, use `[Rival:]` in place of `[NPA:]` to distinguish AA-driven facti
 | Symbol | Meaning                                     | Example                         |
 | :----- | :------------------------------------------ | :------------------------------ |
 | `@`    | Faction action (three-part argument)        | `@ Meranto`                     |
-| `d:`   | OSG dice roll (2d6 keep high/low)           | `d: 2d6 → 4,6  keep high → 6`  |
+| `d:`   | OSG dice roll (2d6kh1/kl1)                  | `d: 2d6kh1 [4, 6] = 6`  |
 | `->`   | Adjudicated outcome                         | `-> Partial success`            |
 | `=>`   | Board-state consequence                     | `=> [Fac:Caldrath \| pos:...]`  |
 | `?`    | Oracle query *(solo extension)*             | `? What does Saivorn attempt?`  |
@@ -602,7 +602,7 @@ In solo play, use `[Rival:]` in place of `[NPA:]` to distinguish AA-driven facti
   out: What result do they want?
   lev: Why is this likely to produce that outcome?
 [Lev:Strong] or [Lev:Weak]
-d: 2d6 → H,L  keep high/low → result
+d: 2d6kh1/kl1 [results] = kept
 -> outcome
 => consequence
 ```
@@ -662,7 +662,7 @@ A: Convert them to an NPA. Add a `behavior:` field to their tag and note the tra
 A: Yes. That is the primary use case. All `@` blocks log submitted actions as the Referee received them. The Referee's own reasoning is recorded in the `[Lev:]` grade and `->` outcome lines.
 
 **Q: Does Factionlog work with any OSG scenario?**
-A: Yes. The notation is system-agnostic within the OSG framework: it assumes the three-part action structure, the 2d6 keep-high/low mechanic, and the turn/report cycle. Scenario-specific mechanics (spendable bonuses, NPAs, maps) are all optional layers.
+A: Yes. The notation is system-agnostic within the OSG framework: it assumes the three-part action structure, the `2d6kh1`/`2d6kl1` mechanic, and the turn/report cycle. Scenario-specific mechanics (spendable bonuses, NPAs, maps) are all optional layers.
 
 **Q: How does Factionlog relate to Lonelog add-ons?**
 A: Factionlog is a fork, not an add-on. It replaces the solo character-action model entirely. Lonelog add-ons (Combat, Dungeon Crawling, Resource Tracking) are not designed for faction-scale play and are not compatible with Factionlog without adaptation.

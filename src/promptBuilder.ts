@@ -72,6 +72,59 @@ export function reportPrompt(context: string, turnBlock: string): string {
   ].join("\n");
 }
 
+export function briefPrompt(pitch: string): string {
+  const premise = pitch.trim()
+    ? `Use this pitch as the campaign seed: ${pitch.trim()}`
+    : "The pitch is blank. Propose a random but plausible genre, subject, crisis, and cast suitable for Open Strategy Game play.";
+  return [
+    "Generate a complete Open Strategy Game campaign brief.",
+    premise,
+    "",
+    "Design constraints:",
+    "- Use 5 to 8 differentiated player Actors.",
+    "- Include 0 to 2 optional Non-Player Actors only if they create useful referee pressure.",
+    "- Every Actor needs asymmetric objectives, a concrete starting position, and at least one hook involving another Actor.",
+    "- Use concise, playable material. Avoid lore dumps.",
+    "- Keep the game credible: objectives should create tension without requiring one fixed plot.",
+    "- Include Special Abilities as spendable bonuses when useful. Uses must be written as a number or as current/max, such as 1 or 2/2.",
+    "- Mark Non-Player Actors clearly with (NPA) in the private brief heading and faction name.",
+    "",
+    "Return only the brief in exactly this Markdown structure:",
+    "",
+    "**Brief Template**",
+    "",
+    "*General Brief: distributed to all players*",
+    "",
+    "**The Problem:** one sentence",
+    "**The World:** broad strokes, shared context",
+    "**The Actors:** one public sentence per faction",
+    "**Structure:** Each Actor submits one Action per turn in the format Action / Outcome / Leverage. The game ends after X turns. Objectives are self-assessed at game end.",
+    "**Expectations:** The goal of the game is to achieve your objectives. The point of the game is to create a credible narrative.",
+    "",
+    "---",
+    "*Private Brief: this Actor only*",
+    "",
+    "**Faction Name:**",
+    "**Objectives:**",
+    "",
+    "- Short-term:",
+    "- Long-term:",
+    "",
+    "**Position:**",
+    "-",
+    "-",
+    "-",
+    "",
+    "**Special Abilities** *(if using bonuses)*:",
+    "",
+    "| Name | Uses | Description |",
+    "| ---- | ---- | ----------- |",
+    "|      |      |             |",
+    "",
+    "Repeat the Private Brief section once for each Actor and NPA.",
+  ].join("\n");
+}
+
 function formatActionForPrompt(action: FactionAction): string {
   return [
     `@ ${action.factionName}${action.isNPA ? " (NPA)" : ""}`,
