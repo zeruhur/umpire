@@ -66,7 +66,7 @@ export class GeminiProvider implements AIProvider {
 
     const candidate = data.candidates?.[0];
     const text = candidate?.content?.parts?.map((part) => part.text ?? "").join("").trim() ?? "";
-    console.log("[Umpire] Gemini finishReason:", candidate?.finishReason, "| outputTokens:", data.usageMetadata?.candidatesTokenCount);
+    console.log("[Umpire] Gemini model:", request.model, "| maxOutputTokens sent:", request.maxOutputTokens, "| finishReason:", candidate?.finishReason, "| outputTokens:", data.usageMetadata?.candidatesTokenCount);
     if (!text) {
       throw new Error("Gemini returned an empty response");
     }
