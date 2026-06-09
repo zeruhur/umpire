@@ -5,6 +5,7 @@ interface GeminiCandidate {
   content?: {
     parts?: Array<{ text?: string }>;
   };
+  finishReason?: string;
 }
 
 interface GeminiResponse {
@@ -63,7 +64,9 @@ export class GeminiProvider implements AIProvider {
       throw new Error(data.error?.message ?? `Gemini request failed: ${response.status}`);
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim() ?? "";
+    const candidate = data.candidates?.[0];
+    const text = candidate?.content?.parts?.map((part) => part.text ?? "").join("").trim() ?? "";
+    console.log("[Umpire] Gemini finishReason:", candidate?.finishReason, "| outputTokens:", data.usageMetadata?.candidatesTokenCount);
     if (!text) {
       throw new Error("Gemini returned an empty response");
     }
