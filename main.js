@@ -592,7 +592,9 @@ var AdjudicationReviewModal = class extends import_obsidian2.Modal {
   }
   addArea(name, initial, onChange) {
     new import_obsidian2.Setting(this.contentEl).setName(name).addTextArea((area) => {
-      area.inputEl.rows = 6;
+      area.inputEl.rows = 8;
+      area.inputEl.style.width = "100%";
+      area.inputEl.style.resize = "vertical";
       area.setValue(initial);
       area.onChange(onChange);
     });
@@ -784,9 +786,19 @@ function adjudicationPrompt(context, action, grade, dice) {
     "Output exactly one outcome line beginning with -> and one or more consequence lines beginning with =>.",
     "Do not include dice, leverage grade, report prose, or explanation.",
     `Leverage: ${grade}`,
-    `Dice kept result: ${dice.kept} from ${dice.die1},${dice.die2}`,
+    `Dice kept result: ${dice.kept} from ${dice.die1},${dice.die2} \u2014 ${diceLabel(dice.kept)}`,
+    "Dice interpretation: 6 = critical success (desired outcome occurs; something especially good also occurs), 4-5 = success (desired outcome occurs), 2-3 = partial success (action proceeds but outcome is worse than desired), 1 = failure (action proceeds but something especially bad occurs).",
     formatActionForPrompt(action)
   ].join("\n");
+}
+function diceLabel(kept) {
+  if (kept === 6)
+    return "Critical Success";
+  if (kept >= 4)
+    return "Success";
+  if (kept >= 2)
+    return "Partial Success";
+  return "Failure";
 }
 function forceOfNaturePrompt(context, dice) {
   return [
