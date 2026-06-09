@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { briefToFactionlog, parseBriefActors } from "../src/brief";
 import { formatAction, formatActorRegistration, formatAdjudication, formatDice, formatForceOfNature, formatLeverageGrade } from "../src/factionlog/formatter";
-import { findActionBlockAt, parseActionBlock, parseBoardState, parseDiceResult, parseLeverageGrade, serializeBoardState } from "../src/factionlog/parser";
+import { findActionBlockAt, parseActionBlock, parseAdjudicationDraft, parseBoardState, parseDiceResult, parseLeverageGrade, serializeBoardState } from "../src/factionlog/parser";
 import { adjudicationPrompt, briefPrompt, buildContext, buildSystemPrompt, forceOfNaturePrompt, leveragePrompt, reportPrompt } from "../src/promptBuilder";
 
 const actionText = [
@@ -93,7 +93,31 @@ const context = buildContext({
 
 assert.equal(buildSystemPrompt({}).includes("RAT means Reasonable, Actionable, Traceable."), true);
 assert.equal(leveragePrompt(context, parsed).includes("Give exactly one first line: Strong or Weak."), true);
-assert.equal(adjudicationPrompt(context, parsed, "Strong", { die1: 6, die2: 2, kept: 6, grade: "Strong", isDoubles: false }).includes("Output exactly one outcome line"), true);
+assert.equal(adjudicationPrompt(context, parsed, "Strong", { die1: 6, die2: 2, kept: 6, grade: "Strong", isDoubles: false }).includes("Output format: exactly one line starting with ->"), true);
+
+// parseAdjudicationDraft — basic
+assert.deepEqual(parseAdjudicationDraft("-> Outcome text\n=> Consequence one\n=> Consequence two"), {
+  outcome: "Outcome text",
+  consequences: ["Consequence one", "Consequence two"],
+});
+
+// parseAdjudicationDraft — multi-line consequence continuation
+assert.deepEqual(parseAdjudicationDraft("-> Short outcome\n=> First line of consequence\ncontinuation of first\n=> Second consequence"), {
+  outcome: "Short outcome",
+  consequences: ["First line of consequence continuation of first", "Second consequence"],
+});
+
+// parseAdjudicationDraft — no => lines falls back to empty string sentinel
+assert.deepEqual(parseAdjudicationDraft("-> Outcome only"), {
+  outcome: "Outcome only",
+  consequences: [""],
+});
+
+// parseAdjudicationDraft — no -> marker falls back to first line
+assert.deepEqual(parseAdjudicationDraft("Outcome without marker\n=> Consequence"), {
+  outcome: "Outcome without marker",
+  consequences: ["Consequence"],
+});
 assert.equal(forceOfNaturePrompt(context, { die1: 4, die2: 4, kept: 4, grade: "Strong", isDoubles: true }).includes("Doubles were rolled: 4,4."), true);
 assert.equal(reportPrompt(context, turnNote).includes("Current turn block:"), true);
 assert.equal(briefPrompt("").includes("The pitch is blank."), true);

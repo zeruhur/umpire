@@ -3,7 +3,7 @@ import { briefToFactionlog } from "./brief";
 import { insertText, cursorOffset } from "./editor";
 import { getFrontMatter } from "./frontmatter";
 import { formatAction, formatActorRegistration, formatAdjudication, formatDice, formatForceOfNature, formatLeverageGrade } from "./factionlog/formatter";
-import { findActionBlockAt, parseActionBlock, parseBoardState, parseDiceResult, parseLeverageGrade, serializeBoardState } from "./factionlog/parser";
+import { findActionBlockAt, parseActionBlock, parseAdjudicationDraft, parseBoardState, parseDiceResult, parseLeverageGrade, serializeBoardState } from "./factionlog/parser";
 import { ActionSubmissionModal, ActorRegistrationModal, AdjudicationReviewModal, BriefPitchModal, LeverageConfirmModal, ReviewTextModal } from "./modals";
 import { getProvider } from "./providers";
 import { AIProvider } from "./providers/base";
@@ -288,19 +288,6 @@ function rollDice(grade: LeverageGrade): DiceResult {
   };
 }
 
-function parseAdjudicationDraft(text: string): AdjudicationDraft {
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const outcome = (lines.find((line) => line.startsWith("->")) ?? lines[0] ?? "").replace(/^->\s*/, "");
-  const consequences: string[] = [];
-  for (const line of lines) {
-    if (line.startsWith("=>")) {
-      consequences.push(line.replace(/^=>\s*/, ""));
-    } else if (consequences.length > 0 && !line.startsWith("->")) {
-      consequences[consequences.length - 1] += " " + line;
-    }
-  }
-  return { outcome, consequences: consequences.length ? consequences : [""] };
-}
 
 function currentTurnBlock(text: string, offset: number): string {
   const lines = text.split("\n");
