@@ -393,13 +393,16 @@ ${values.join("\n")}`);
 function parseAdjudicationDraft(text) {
   var _a, _b;
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const outcome = ((_b = (_a = lines.find((line) => line.startsWith("->"))) != null ? _a : lines[0]) != null ? _b : "").replace(/^->\s*/, "");
+  const outcomeLine = (_b = (_a = lines.find((line) => line.startsWith("->"))) != null ? _a : lines[0]) != null ? _b : "";
+  const outcome = outcomeLine.replace(/^->\s*/, "");
   const consequences = [];
   for (const line of lines) {
+    if (line === outcomeLine)
+      continue;
     if (line.startsWith("=>")) {
       consequences.push(line.replace(/^=>\s*/, ""));
-    } else if (consequences.length > 0 && !line.startsWith("->")) {
-      consequences[consequences.length - 1] += " " + line;
+    } else if (consequences.length > 0) {
+      consequences[consequences.length - 1] += " " + line.replace(/^->\s*/, "");
     }
   }
   return { outcome, consequences: consequences.length ? consequences : [""] };
@@ -605,11 +608,8 @@ var AdjudicationReviewModal = class extends import_obsidian2.Modal {
     }));
   }
   addArea(name, initial, onChange) {
-    this.contentEl.createEl("p", { text: name, cls: "setting-item-name" });
-    new import_obsidian2.Setting(this.contentEl).addTextArea((area) => {
-      area.inputEl.rows = 8;
-      area.inputEl.cols = 64;
-      area.inputEl.style.resize = "vertical";
+    new import_obsidian2.Setting(this.contentEl).setName(name).addTextArea((area) => {
+      area.inputEl.rows = 6;
       area.setValue(initial);
       area.onChange(onChange);
     });
