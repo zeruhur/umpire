@@ -101,10 +101,16 @@ assert.deepEqual(parseAdjudicationDraft("-> Outcome text\n=> Consequence one\n=>
   consequences: ["Consequence one", "Consequence two"],
 });
 
-// parseAdjudicationDraft — multi-line consequence continuation
+// parseAdjudicationDraft — multi-line consequence continuation including -> lines
 assert.deepEqual(parseAdjudicationDraft("-> Short outcome\n=> First line of consequence\ncontinuation of first\n=> Second consequence"), {
   outcome: "Short outcome",
   consequences: ["First line of consequence continuation of first", "Second consequence"],
+});
+
+// parseAdjudicationDraft — -> mid-consequence is appended, not dropped
+assert.deepEqual(parseAdjudicationDraft("-> Short outcome\n=> First part of consequence\n-> continuation after arrow"), {
+  outcome: "Short outcome",
+  consequences: ["First part of consequence continuation after arrow"],
 });
 
 // parseAdjudicationDraft — no => lines falls back to empty string sentinel

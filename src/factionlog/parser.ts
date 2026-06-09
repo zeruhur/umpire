@@ -175,13 +175,15 @@ function pushMap(sections: string[], label: string, map: Map<string, string>): v
 
 export function parseAdjudicationDraft(text: string): AdjudicationDraft {
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const outcome = (lines.find((line) => line.startsWith("->")) ?? lines[0] ?? "").replace(/^->\s*/, "");
+  const outcomeLine = lines.find((line) => line.startsWith("->")) ?? lines[0] ?? "";
+  const outcome = outcomeLine.replace(/^->\s*/, "");
   const consequences: string[] = [];
   for (const line of lines) {
+    if (line === outcomeLine) continue;
     if (line.startsWith("=>")) {
       consequences.push(line.replace(/^=>\s*/, ""));
-    } else if (consequences.length > 0 && !line.startsWith("->")) {
-      consequences[consequences.length - 1] += " " + line;
+    } else if (consequences.length > 0) {
+      consequences[consequences.length - 1] += " " + line.replace(/^->\s*/, "");
     }
   }
   return { outcome, consequences: consequences.length ? consequences : [""] };
