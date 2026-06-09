@@ -67,8 +67,8 @@ function formatLeverageGrade(grade) {
 }
 function formatDice(result) {
   const notation = result.grade === "Strong" ? "2d6kh1" : "2d6kl1";
-  const doubles = result.isDoubles ? "  DOUBLES" : "";
-  return `d: ${notation} -> ${result.kept} [${result.die1},${result.die2}]${doubles}`;
+  const fon = result.isDoubles ? " //FoN" : "";
+  return `d: ${notation}: [${result.die1},${result.die2}] = ${result.kept}${fon}`;
 }
 function formatAdjudication(draft) {
   const lines = [`-> ${clean(draft.outcome)}`];
@@ -300,15 +300,28 @@ function parseLeverageGrade(text) {
 }
 function parseDiceResult(text) {
   const explicitGrade = parseLeverageGrade(text);
-  const canonical = text.match(/d:?\s*2d6(kh1|kl1)\s*(?:->|→)\s*(\d)\s*\[\s*(\d)\s*,\s*(\d)\s*\]/i);
+  const canonical = text.match(/d:?\s*2d6(kh1|kl1)\s*:\s*\[\s*(\d)\s*,\s*(\d)\s*\]\s*=\s*(\d)/i);
   if (canonical) {
     const notationGrade = canonical[1].toLowerCase() === "kh1" ? "Strong" : "Weak";
-    const die12 = Number(canonical[3]);
-    const die22 = Number(canonical[4]);
+    const die12 = Number(canonical[2]);
+    const die22 = Number(canonical[3]);
     return {
       die1: die12,
       die2: die22,
-      kept: Number(canonical[2]),
+      kept: Number(canonical[4]),
+      grade: explicitGrade != null ? explicitGrade : notationGrade,
+      isDoubles: die12 === die22 || /\/\/FoN\b/i.test(text)
+    };
+  }
+  const legacy = text.match(/d:?\s*2d6(kh1|kl1)\s*(?:->|→)\s*(\d)\s*\[\s*(\d)\s*,\s*(\d)\s*\]/i);
+  if (legacy) {
+    const notationGrade = legacy[1].toLowerCase() === "kh1" ? "Strong" : "Weak";
+    const die12 = Number(legacy[3]);
+    const die22 = Number(legacy[4]);
+    return {
+      die1: die12,
+      die2: die22,
+      kept: Number(legacy[2]),
       grade: explicitGrade != null ? explicitGrade : notationGrade,
       isDoubles: die12 === die22 || /\bDOUBLES\b/i.test(text)
     };
