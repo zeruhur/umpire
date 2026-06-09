@@ -783,11 +783,12 @@ function adjudicationPrompt(context, action, grade, dice) {
     context,
     "",
     "Draft a Factionlog adjudication for the action below.",
-    "Output exactly one outcome line beginning with -> and one or more consequence lines beginning with =>.",
-    "Do not include dice, leverage grade, report prose, or explanation.",
+    "Output format: exactly one line starting with -> (the outcome), then zero or more lines each starting with => (consequences).",
+    "The -> line states only what actually happened. Each => line states one distinct side effect or complication. Never put consequence text inside the -> line.",
+    "Do not include dice values, leverage grade, report prose, or explanation in the output.",
     `Leverage: ${grade}`,
-    `Dice kept result: ${dice.kept} from ${dice.die1},${dice.die2} \u2014 ${diceLabel(dice.kept)}`,
-    "Dice interpretation: 6 = critical success (desired outcome occurs; something especially good also occurs), 4-5 = success (desired outcome occurs), 2-3 = partial success (action proceeds but outcome is worse than desired), 1 = failure (action proceeds but something especially bad occurs).",
+    `Dice kept: ${dice.kept} of [${dice.die1}, ${dice.die2}] \u2014 ${diceLabel(dice.kept)}`,
+    `Output instruction for this result: ${diceInstruction(dice.kept)}`,
     formatActionForPrompt(action)
   ].join("\n");
 }
@@ -799,6 +800,15 @@ function diceLabel(kept) {
   if (kept >= 2)
     return "Partial Success";
   return "Failure";
+}
+function diceInstruction(kept) {
+  if (kept === 6)
+    return "The desired outcome occurs (-> line). Add one consequence line describing something especially good that also happens for the Actor.";
+  if (kept >= 4)
+    return "The desired outcome occurs (-> line). Add a consequence line only if a notable side effect is relevant; otherwise omit it.";
+  if (kept >= 2)
+    return "The action proceeds but the outcome is worse than desired (-> line reflects the worse result). Add one consequence line describing the cost or complication.";
+  return "The action proceeds but fails or backfires (-> line reflects the failure). Add one consequence line describing something especially bad that results.";
 }
 function forceOfNaturePrompt(context, dice) {
   return [
