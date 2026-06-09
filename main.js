@@ -1170,7 +1170,14 @@ function parseAdjudicationDraft(text) {
   var _a, _b;
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
   const outcome = ((_b = (_a = lines.find((line) => line.startsWith("->"))) != null ? _a : lines[0]) != null ? _b : "").replace(/^->\s*/, "");
-  const consequences = lines.filter((line) => line.startsWith("=>")).map((line) => line.replace(/^=>\s*/, ""));
+  const consequences = [];
+  for (const line of lines) {
+    if (line.startsWith("=>")) {
+      consequences.push(line.replace(/^=>\s*/, ""));
+    } else if (consequences.length > 0 && !line.startsWith("->")) {
+      consequences[consequences.length - 1] += " " + line;
+    }
+  }
   return { outcome, consequences: consequences.length ? consequences : [""] };
 }
 function currentTurnBlock(text, offset) {
