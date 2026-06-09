@@ -657,10 +657,12 @@ var GeminiProvider = class {
     if (!response.ok) {
       throw new Error((_c = (_b = data.error) == null ? void 0 : _b.message) != null ? _c : `Gemini request failed: ${response.status}`);
     }
-    const text = (_h = (_g = (_f = (_e = (_d = data.candidates) == null ? void 0 : _d[0]) == null ? void 0 : _e.content) == null ? void 0 : _f.parts) == null ? void 0 : _g.map((part) => {
+    const candidate = (_d = data.candidates) == null ? void 0 : _d[0];
+    const text = (_g = (_f = (_e = candidate == null ? void 0 : candidate.content) == null ? void 0 : _e.parts) == null ? void 0 : _f.map((part) => {
       var _a2;
       return (_a2 = part.text) != null ? _a2 : "";
-    }).join("").trim()) != null ? _h : "";
+    }).join("").trim()) != null ? _g : "";
+    console.log("[Umpire] Gemini finishReason:", candidate == null ? void 0 : candidate.finishReason, "| outputTokens:", (_h = data.usageMetadata) == null ? void 0 : _h.candidatesTokenCount);
     if (!text) {
       throw new Error("Gemini returned an empty response");
     }
