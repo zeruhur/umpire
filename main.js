@@ -390,6 +390,20 @@ function pushMap(sections, label, map) {
     sections.push(`${label}:
 ${values.join("\n")}`);
 }
+function parseAdjudicationDraft(text) {
+  var _a, _b;
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  const outcome = ((_b = (_a = lines.find((line) => line.startsWith("->"))) != null ? _a : lines[0]) != null ? _b : "").replace(/^->\s*/, "");
+  const consequences = [];
+  for (const line of lines) {
+    if (line.startsWith("=>")) {
+      consequences.push(line.replace(/^=>\s*/, ""));
+    } else if (consequences.length > 0 && !line.startsWith("->")) {
+      consequences[consequences.length - 1] += " " + line;
+    }
+  }
+  return { outcome, consequences: consequences.length ? consequences : [""] };
+}
 function findActionBlockAt(text, offset) {
   const before = text.slice(0, offset).split("\n");
   let startLine = -1;
@@ -1165,20 +1179,6 @@ function rollDice(grade) {
     grade,
     isDoubles: die1 === die2
   };
-}
-function parseAdjudicationDraft(text) {
-  var _a, _b;
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const outcome = ((_b = (_a = lines.find((line) => line.startsWith("->"))) != null ? _a : lines[0]) != null ? _b : "").replace(/^->\s*/, "");
-  const consequences = [];
-  for (const line of lines) {
-    if (line.startsWith("=>")) {
-      consequences.push(line.replace(/^=>\s*/, ""));
-    } else if (consequences.length > 0 && !line.startsWith("->")) {
-      consequences[consequences.length - 1] += " " + line;
-    }
-  }
-  return { outcome, consequences: consequences.length ? consequences : [""] };
 }
 function currentTurnBlock(text, offset) {
   const lines = text.split("\n");
