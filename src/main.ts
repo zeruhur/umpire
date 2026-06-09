@@ -291,9 +291,14 @@ function rollDice(grade: LeverageGrade): DiceResult {
 function parseAdjudicationDraft(text: string): AdjudicationDraft {
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
   const outcome = (lines.find((line) => line.startsWith("->")) ?? lines[0] ?? "").replace(/^->\s*/, "");
-  const consequences = lines
-    .filter((line) => line.startsWith("=>"))
-    .map((line) => line.replace(/^=>\s*/, ""));
+  const consequences: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith("=>")) {
+      consequences.push(line.replace(/^=>\s*/, ""));
+    } else if (consequences.length > 0 && !line.startsWith("->")) {
+      consequences[consequences.length - 1] += " " + line;
+    }
+  }
   return { outcome, consequences: consequences.length ? consequences : [""] };
 }
 
