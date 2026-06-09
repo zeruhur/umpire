@@ -662,7 +662,7 @@ var GeminiProvider = class {
       var _a2;
       return (_a2 = part.text) != null ? _a2 : "";
     }).join("").trim()) != null ? _g : "";
-    console.log("[Umpire] Gemini finishReason:", candidate == null ? void 0 : candidate.finishReason, "| outputTokens:", (_h = data.usageMetadata) == null ? void 0 : _h.candidatesTokenCount);
+    console.log("[Umpire] Gemini model:", request.model, "| maxOutputTokens sent:", request.maxOutputTokens, "| finishReason:", candidate == null ? void 0 : candidate.finishReason, "| outputTokens:", (_h = data.usageMetadata) == null ? void 0 : _h.candidatesTokenCount);
     if (!text) {
       throw new Error("Gemini returned an empty response");
     }
