@@ -39,8 +39,8 @@ export function formatLeverageGrade(grade: LeverageGrade): string {
 
 export function formatDice(result: DiceResult): string {
   const notation = result.grade === "Strong" ? "2d6kh1" : "2d6kl1";
-  const doubles = result.isDoubles ? "  DOUBLES" : "";
-  return `d: ${notation} -> ${result.kept} [${result.die1},${result.die2}]${doubles}`;
+  const fon = result.isDoubles ? " //FoN" : "";
+  return `d: ${notation}: [${result.die1},${result.die2}] = ${result.kept}${fon}`;
 }
 
 export function formatAdjudication(draft: AdjudicationDraft): string {

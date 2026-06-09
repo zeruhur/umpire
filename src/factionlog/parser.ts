@@ -82,15 +82,30 @@ export function parseLeverageGrade(text: string): LeverageGrade | null {
 
 export function parseDiceResult(text: string): DiceResult | null {
   const explicitGrade = parseLeverageGrade(text);
-  const canonical = text.match(/d:?\s*2d6(kh1|kl1)\s*(?:->|→)\s*(\d)\s*\[\s*(\d)\s*,\s*(\d)\s*\]/i);
+  // new format: d: 2d6kh1: [2,3] = 3 //FoN
+  const canonical = text.match(/d:?\s*2d6(kh1|kl1)\s*:\s*\[\s*(\d)\s*,\s*(\d)\s*\]\s*=\s*(\d)/i);
   if (canonical) {
     const notationGrade: LeverageGrade = canonical[1].toLowerCase() === "kh1" ? "Strong" : "Weak";
-    const die1 = Number(canonical[3]);
-    const die2 = Number(canonical[4]);
+    const die1 = Number(canonical[2]);
+    const die2 = Number(canonical[3]);
     return {
       die1,
       die2,
-      kept: Number(canonical[2]),
+      kept: Number(canonical[4]),
+      grade: explicitGrade ?? notationGrade,
+      isDoubles: die1 === die2 || /\/\/FoN\b/i.test(text),
+    };
+  }
+  // legacy format: d: 2d6kh1 -> 3 [2,3]
+  const legacy = text.match(/d:?\s*2d6(kh1|kl1)\s*(?:->|→)\s*(\d)\s*\[\s*(\d)\s*,\s*(\d)\s*\]/i);
+  if (legacy) {
+    const notationGrade: LeverageGrade = legacy[1].toLowerCase() === "kh1" ? "Strong" : "Weak";
+    const die1 = Number(legacy[3]);
+    const die2 = Number(legacy[4]);
+    return {
+      die1,
+      die2,
+      kept: Number(legacy[2]),
       grade: explicitGrade ?? notationGrade,
       isDoubles: die1 === die2 || /\bDOUBLES\b/i.test(text),
     };

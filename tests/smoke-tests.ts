@@ -40,7 +40,7 @@ assert.equal(formatActorRegistration({
 assert.equal(formatLeverageGrade("Strong"), "[Lev:Strong]");
 assert.equal(parseLeverageGrade("[Lev:Weak]"), "Weak");
 
-const strongDice = "d: 2d6kh1 -> 6 [6,2]";
+const strongDice = "d: 2d6kh1: [6,2] = 6";
 assert.deepEqual(parseDiceResult(`[Lev:Strong]\n${strongDice}`), {
   die1: 6,
   die2: 2,
@@ -48,7 +48,15 @@ assert.deepEqual(parseDiceResult(`[Lev:Strong]\n${strongDice}`), {
   grade: "Strong",
   isDoubles: false,
 });
-assert.equal(formatDice({ die1: 5, die2: 5, kept: 5, grade: "Weak", isDoubles: true }), "d: 2d6kl1 -> 5 [5,5]  DOUBLES");
+assert.equal(formatDice({ die1: 5, die2: 5, kept: 5, grade: "Weak", isDoubles: true }), "d: 2d6kl1: [5,5] = 5 //FoN");
+// legacy format still parses
+assert.deepEqual(parseDiceResult("d: 2d6kh1 -> 6 [6,2]"), {
+  die1: 6,
+  die2: 2,
+  kept: 6,
+  grade: "Strong",
+  isDoubles: false,
+});
 
 assert.equal(formatAdjudication({
   outcome: "Partial success; review opens, but scope is disputed",
