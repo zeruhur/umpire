@@ -1,6 +1,6 @@
 {
   "name": "obsidian-umpire",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Obsidian referee assistant for Open Strategy Game sessions.",
   "main": "main.js",
   "scripts": {
