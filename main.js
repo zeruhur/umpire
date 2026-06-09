@@ -628,7 +628,7 @@ var GeminiProvider = class {
     return Boolean((_a = this.config.apiKey) == null ? void 0 : _a.trim());
   }
   async generate(request) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     if (!await this.validate()) {
       throw new Error("Missing Gemini API key");
     }
@@ -649,7 +649,8 @@ var GeminiProvider = class {
         ],
         generationConfig: {
           temperature: request.temperature,
-          maxOutputTokens: request.maxOutputTokens
+          maxOutputTokens: request.maxOutputTokens,
+          thinkingConfig: { thinkingBudget: 0 }
         }
       })
     });
@@ -662,14 +663,13 @@ var GeminiProvider = class {
       var _a2;
       return (_a2 = part.text) != null ? _a2 : "";
     }).join("").trim()) != null ? _g : "";
-    console.log("[Umpire] Gemini model:", request.model, "| maxOutputTokens sent:", request.maxOutputTokens, "| finishReason:", candidate == null ? void 0 : candidate.finishReason, "| outputTokens:", (_h = data.usageMetadata) == null ? void 0 : _h.candidatesTokenCount);
     if (!text) {
       throw new Error("Gemini returned an empty response");
     }
     return {
       text,
-      inputTokens: (_i = data.usageMetadata) == null ? void 0 : _i.promptTokenCount,
-      outputTokens: (_j = data.usageMetadata) == null ? void 0 : _j.candidatesTokenCount
+      inputTokens: (_h = data.usageMetadata) == null ? void 0 : _h.promptTokenCount,
+      outputTokens: (_i = data.usageMetadata) == null ? void 0 : _i.candidatesTokenCount
     };
   }
 };
@@ -1048,7 +1048,6 @@ var UmpirePlugin = class extends import_obsidian4.Plugin {
             temperature: setup.temperature,
             maxOutputTokens: 800
           });
-          console.log("[Umpire] raw adjudication response:\n", JSON.stringify(response.text));
           const draft = parseAdjudicationDraft(response.text);
           new AdjudicationReviewModal(this.app, draft.outcome, draft.consequences.join("\n"), (outcome, consequences) => {
             insertText(editor, formatAdjudication({ outcome, consequences: consequences.split("\n").filter(Boolean) }), this.settings.insertionMode);
