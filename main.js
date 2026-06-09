@@ -1046,6 +1046,7 @@ var UmpirePlugin = class extends import_obsidian4.Plugin {
             temperature: setup.temperature,
             maxOutputTokens: 800
           });
+          console.log("[Umpire] raw adjudication response:\n", JSON.stringify(response.text));
           const draft = parseAdjudicationDraft(response.text);
           new AdjudicationReviewModal(this.app, draft.outcome, draft.consequences.join("\n"), (outcome, consequences) => {
             insertText(editor, formatAdjudication({ outcome, consequences: consequences.split("\n").filter(Boolean) }), this.settings.insertionMode);
