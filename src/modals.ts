@@ -251,7 +251,9 @@ export class AdjudicationReviewModal extends Modal {
 
   private addArea(name: string, initial: string, onChange: (value: string) => void): void {
     new Setting(this.contentEl).setName(name).addTextArea((area) => {
-      area.inputEl.rows = 6;
+      area.inputEl.rows = 8;
+      area.inputEl.style.width = "100%";
+      area.inputEl.style.resize = "vertical";
       area.setValue(initial);
       area.onChange(onChange);
     });

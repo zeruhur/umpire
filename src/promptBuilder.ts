@@ -44,9 +44,17 @@ export function adjudicationPrompt(context: string, action: FactionAction, grade
     "Output exactly one outcome line beginning with -> and one or more consequence lines beginning with =>.",
     "Do not include dice, leverage grade, report prose, or explanation.",
     `Leverage: ${grade}`,
-    `Dice kept result: ${dice.kept} from ${dice.die1},${dice.die2}`,
+    `Dice kept result: ${dice.kept} from ${dice.die1},${dice.die2} — ${diceLabel(dice.kept)}`,
+    "Dice interpretation: 6 = critical success (desired outcome occurs; something especially good also occurs), 4-5 = success (desired outcome occurs), 2-3 = partial success (action proceeds but outcome is worse than desired), 1 = failure (action proceeds but something especially bad occurs).",
     formatActionForPrompt(action),
   ].join("\n");
+}
+
+function diceLabel(kept: number): string {
+  if (kept === 6) return "Critical Success";
+  if (kept >= 4) return "Success";
+  if (kept >= 2) return "Partial Success";
+  return "Failure";
 }
 
 export function forceOfNaturePrompt(context: string, dice: DiceResult): string {
